@@ -10,52 +10,52 @@ from lnurl import encode as lnurl_encode
 import shortuuid
 
 
-async def create_myextension(
+async def create_merchantpill(
     wallet_id: str, data: CreateMyExtensionData, req: Request
 ) -> MyExtension:
-    myextension_id = urlsafe_short_hash()
+    merchantpill_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO myextension.maintable (id, wallet, name, lnurlpayamount, lnurlwithdrawamount)
+        INSERT INTO merchantpill.maintable (id, wallet, name, lnurlpayamount, lnurlwithdrawamount)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
-            myextension_id,
+            merchantpill_id,
             wallet_id,
             data.name,
             data.lnurlpayamount,
             data.lnurlwithdrawamount,
         ),
     )
-    myextension = await get_myextension(myextension_id, req)
-    assert myextension, "Newly created table couldn't be retrieved"
-    return myextension
+    merchantpill = await get_merchantpill(merchantpill_id, req)
+    assert merchantpill, "Newly created table couldn't be retrieved"
+    return merchantpill
 
 
-async def get_myextension(
-    myextension_id: str, req: Optional[Request] = None
+async def get_merchantpill(
+    merchantpill_id: str, req: Optional[Request] = None
 ) -> Optional[MyExtension]:
     row = await db.fetchone(
-        "SELECT * FROM myextension.maintable WHERE id = ?", (myextension_id,)
+        "SELECT * FROM merchantpill.maintable WHERE id = ?", (merchantpill_id,)
     )
     if not row:
         return None
     rowAmended = MyExtension(**row)
     if req:
         rowAmended.lnurlpay = lnurl_encode(
-            req.url_for("myextension.api_lnurl_pay", myextension_id=row.id)._url
+            req.url_for("merchantpill.api_lnurl_pay", merchantpill_id=row.id)._url
         )
         rowAmended.lnurlwithdraw = lnurl_encode(
             req.url_for(
-                "myextension.api_lnurl_withdraw",
-                myextension_id=row.id,
+                "merchantpill.api_lnurl_withdraw",
+                merchantpill_id=row.id,
                 tickerhash=shortuuid.uuid(name=rowAmended.id + str(rowAmended.ticker)),
             )._url
         )
     return rowAmended
 
 
-async def get_myextensions(
+async def get_merchantpills(
     wallet_ids: Union[str, List[str]], req: Optional[Request] = None
 ) -> List[MyExtension]:
     if isinstance(wallet_ids, str):
@@ -63,38 +63,38 @@ async def get_myextensions(
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM myextension.maintable WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM merchantpill.maintable WHERE wallet IN ({q})", (*wallet_ids,)
     )
     tempRows = [MyExtension(**row) for row in rows]
     if req:
         for row in tempRows:
             row.lnurlpay = lnurl_encode(
-                req.url_for("myextension.api_lnurl_pay", myextension_id=row.id)._url
+                req.url_for("merchantpill.api_lnurl_pay", merchantpill_id=row.id)._url
             )
             row.lnurlwithdraw = lnurl_encode(
                 req.url_for(
-                    "myextension.api_lnurl_withdraw",
-                    myextension_id=row.id,
+                    "merchantpill.api_lnurl_withdraw",
+                    merchantpill_id=row.id,
                     tickerhash=shortuuid.uuid(name=row.id + str(row.ticker)),
                 )._url
             )
     return tempRows
 
 
-async def update_myextension(
-    myextension_id: str, req: Optional[Request] = None, **kwargs
+async def update_merchantpill(
+    merchantpill_id: str, req: Optional[Request] = None, **kwargs
 ) -> MyExtension:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE myextension.maintable SET {q} WHERE id = ?",
-        (*kwargs.values(), myextension_id),
+        f"UPDATE merchantpill.maintable SET {q} WHERE id = ?",
+        (*kwargs.values(), merchantpill_id),
     )
-    myextension = await get_myextension(myextension_id, req)
-    assert myextension, "Newly updated myextension couldn't be retrieved"
-    return myextension
+    merchantpill = await get_merchantpill(merchantpill_id, req)
+    assert merchantpill, "Newly updated merchantpill couldn't be retrieved"
+    return merchantpill
 
 
-async def delete_myextension(myextension_id: str) -> None:
+async def delete_merchantpill(merchantpill_id: str) -> None:
     await db.execute(
-        "DELETE FROM myextension.maintable WHERE id = ?", (myextension_id,)
+        "DELETE FROM merchantpill.maintable WHERE id = ?", (merchantpill_id,)
     )

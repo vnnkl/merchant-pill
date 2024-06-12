@@ -4,12 +4,12 @@
 
 from http import HTTPStatus
 from fastapi import Depends, Query, Request
-from . import myextension_ext
-from .crud import get_myextension
+from . import merchantpill_ext
+from .crud import get_merchantpill
 from lnbits.core.services import create_invoice, pay_invoice
 from loguru import logger
 from typing import Optional
-from .crud import update_myextension
+from .crud import update_merchantpill
 from .models import MyExtension
 import shortuuid
 
@@ -20,61 +20,61 @@ import shortuuid
 #################################################
 
 
-@myextension_ext.get(
-    "/api/v1/lnurl/pay/{myextension_id}",
+@merchantpill_ext.get(
+    "/api/v1/lnurl/pay/{merchantpill_id}",
     status_code=HTTPStatus.OK,
-    name="myextension.api_lnurl_pay",
+    name="merchantpill.api_lnurl_pay",
 )
 async def api_lnurl_pay(
     request: Request,
-    myextension_id: str,
+    merchantpill_id: str,
 ):
-    myextension = await get_myextension(myextension_id)
-    if not myextension:
-        return {"status": "ERROR", "reason": "No myextension found"}
+    merchantpill = await get_merchantpill(merchantpill_id)
+    if not merchantpill:
+        return {"status": "ERROR", "reason": "No merchantpill found"}
     return {
         "callback": str(
             request.url_for(
-                "myextension.api_lnurl_pay_callback", myextension_id=myextension_id
+                "merchantpill.api_lnurl_pay_callback", merchantpill_id=merchantpill_id
             )
         ),
-        "maxSendable": myextension.lnurlpayamount * 1000,
-        "minSendable": myextension.lnurlpayamount * 1000,
-        "metadata": '[["text/plain", "' + myextension.name + '"]]',
+        "maxSendable": merchantpill.lnurlpayamount * 1000,
+        "minSendable": merchantpill.lnurlpayamount * 1000,
+        "metadata": '[["text/plain", "' + merchantpill.name + '"]]',
         "tag": "payRequest",
     }
 
 
-@myextension_ext.get(
-    "/api/v1/lnurl/paycb/{myextension_id}",
+@merchantpill_ext.get(
+    "/api/v1/lnurl/paycb/{merchantpill_id}",
     status_code=HTTPStatus.OK,
-    name="myextension.api_lnurl_pay_callback",
+    name="merchantpill.api_lnurl_pay_callback",
 )
 async def api_lnurl_pay_cb(
     request: Request,
-    myextension_id: str,
+    merchantpill_id: str,
     amount: int = Query(...),
 ):
-    myextension = await get_myextension(myextension_id)
-    logger.debug(myextension)
-    if not myextension:
-        return {"status": "ERROR", "reason": "No myextension found"}
+    merchantpill = await get_merchantpill(merchantpill_id)
+    logger.debug(merchantpill)
+    if not merchantpill:
+        return {"status": "ERROR", "reason": "No merchantpill found"}
 
     payment_hash, payment_request = await create_invoice(
-        wallet_id=myextension.wallet,
+        wallet_id=merchantpill.wallet,
         amount=int(amount / 1000),
-        memo=myextension.name,
-        unhashed_description=f'[["text/plain", "{myextension.name}"]]'.encode(),
+        memo=merchantpill.name,
+        unhashed_description=f'[["text/plain", "{merchantpill.name}"]]'.encode(),
         extra={
             "tag": "MyExtension",
-            "myextensionId": myextension_id,
+            "merchantpillId": merchantpill_id,
             "extra": request.query_params.get("amount"),
         },
     )
     return {
         "pr": payment_request,
         "routes": [],
-        "successAction": {"tag": "message", "message": f"Paid {myextension.name}"},
+        "successAction": {"tag": "message", "message": f"Paid {merchantpill.name}"},
     }
 
 
@@ -87,20 +87,20 @@ async def api_lnurl_pay_cb(
 #################################################
 
 
-@myextension_ext.get(
-    "/api/v1/lnurl/withdraw/{myextension_id}/{tickerhash}",
+@merchantpill_ext.get(
+    "/api/v1/lnurl/withdraw/{merchantpill_id}/{tickerhash}",
     status_code=HTTPStatus.OK,
-    name="myextension.api_lnurl_withdraw",
+    name="merchantpill.api_lnurl_withdraw",
 )
 async def api_lnurl_withdraw(
     request: Request,
-    myextension_id: str,
+    merchantpill_id: str,
     tickerhash: str,
 ):
-    myextension = await get_myextension(myextension_id)
-    if not myextension:
-        return {"status": "ERROR", "reason": "No myextension found"}
-    k1 = shortuuid.uuid(name=myextension.id + str(myextension.ticker))
+    merchantpill = await get_merchantpill(merchantpill_id)
+    if not merchantpill:
+        return {"status": "ERROR", "reason": "No merchantpill found"}
+    k1 = shortuuid.uuid(name=merchantpill.id + str(merchantpill.ticker))
     if k1 != tickerhash:
         return {"status": "ERROR", "reason": "LNURLw already used"}
 
@@ -108,47 +108,47 @@ async def api_lnurl_withdraw(
         "tag": "withdrawRequest",
         "callback": str(
             request.url_for(
-                "myextension.api_lnurl_withdraw_callback", myextension_id=myextension_id
+                "merchantpill.api_lnurl_withdraw_callback", merchantpill_id=merchantpill_id
             )
         ),
         "k1": k1,
-        "defaultDescription": myextension.name,
-        "maxWithdrawable": myextension.lnurlwithdrawamount * 1000,
-        "minWithdrawable": myextension.lnurlwithdrawamount * 1000,
+        "defaultDescription": merchantpill.name,
+        "maxWithdrawable": merchantpill.lnurlwithdrawamount * 1000,
+        "minWithdrawable": merchantpill.lnurlwithdrawamount * 1000,
     }
 
 
-@myextension_ext.get(
-    "/api/v1/lnurl/withdrawcb/{myextension_id}",
+@merchantpill_ext.get(
+    "/api/v1/lnurl/withdrawcb/{merchantpill_id}",
     status_code=HTTPStatus.OK,
-    name="myextension.api_lnurl_withdraw_callback",
+    name="merchantpill.api_lnurl_withdraw_callback",
 )
 async def api_lnurl_withdraw_cb(
     request: Request,
-    myextension_id: str,
+    merchantpill_id: str,
     pr: Optional[str] = None,
     k1: Optional[str] = None,
 ):
     assert k1, "k1 is required"
     assert pr, "pr is required"
-    myextension = await get_myextension(myextension_id)
-    if not myextension:
-        return {"status": "ERROR", "reason": "No myextension found"}
+    merchantpill = await get_merchantpill(merchantpill_id)
+    if not merchantpill:
+        return {"status": "ERROR", "reason": "No merchantpill found"}
 
-    k1Check = shortuuid.uuid(name=myextension.id + str(myextension.ticker))
+    k1Check = shortuuid.uuid(name=merchantpill.id + str(merchantpill.ticker))
     if k1Check != k1:
         return {"status": "ERROR", "reason": "Wrong k1 check provided"}
 
-    await update_myextension(
-        myextension_id=myextension_id, ticker=myextension.ticker + 1
+    await update_merchantpill(
+        merchantpill_id=merchantpill_id, ticker=merchantpill.ticker + 1
     )
     await pay_invoice(
-        wallet_id=myextension.wallet,
+        wallet_id=merchantpill.wallet,
         payment_request=pr,
-        max_sat=int(myextension.lnurlwithdrawamount * 1000),
+        max_sat=int(merchantpill.lnurlwithdrawamount * 1000),
         extra={
             "tag": "MyExtension",
-            "myextensionId": myextension_id,
+            "merchantpillId": merchantpill_id,
             "lnurlwithdraw": True,
         },
     )

@@ -8,7 +8,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE myextension.maintable (
+        CREATE TABLE merchantpill.maintable (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -31,6 +31,6 @@ async def m002_addtip_wallet(db):
     """
     await db.execute(
         """
-        ALTER TABLE myextension.maintable ADD ticker INTEGER DEFAULT 1;
+        ALTER TABLE merchantpill.maintable ADD ticker INTEGER DEFAULT 1;
     """
     )

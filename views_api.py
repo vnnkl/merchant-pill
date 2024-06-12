@@ -19,13 +19,13 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 
-from . import myextension_ext
+from . import merchantpill_ext
 from .crud import (
-    create_myextension,
-    update_myextension,
-    delete_myextension,
-    get_myextension,
-    get_myextensions,
+    create_merchantpill,
+    update_merchantpill,
+    delete_merchantpill,
+    get_merchantpill,
+    get_merchantpills,
 )
 from .models import CreateMyExtensionData
 
@@ -37,8 +37,8 @@ from .models import CreateMyExtensionData
 ## Get all the records belonging to the user
 
 
-@myextension_ext.get("/api/v1/myex", status_code=HTTPStatus.OK)
-async def api_myextensions(
+@merchantpill_ext.get("/api/v1/myex", status_code=HTTPStatus.OK)
+async def api_merchantpills(
     req: Request,
     all_wallets: bool = Query(False),
     wallet: WalletTypeInfo = Depends(get_key_type),
@@ -48,87 +48,87 @@ async def api_myextensions(
         user = await get_user(wallet.wallet.user)
         wallet_ids = user.wallet_ids if user else []
     return [
-        myextension.dict() for myextension in await get_myextensions(wallet_ids, req)
+        merchantpill.dict() for merchantpill in await get_merchantpills(wallet_ids, req)
     ]
 
 
 ## Get a single record
 
 
-@myextension_ext.get("/api/v1/myex/{myextension_id}", status_code=HTTPStatus.OK)
-async def api_myextension(
-    req: Request, myextension_id: str, WalletTypeInfo=Depends(get_key_type)
+@merchantpill_ext.get("/api/v1/myex/{merchantpill_id}", status_code=HTTPStatus.OK)
+async def api_merchantpill(
+    req: Request, merchantpill_id: str, WalletTypeInfo=Depends(get_key_type)
 ):
-    myextension = await get_myextension(myextension_id, req)
-    if not myextension:
+    merchantpill = await get_merchantpill(merchantpill_id, req)
+    if not merchantpill:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
         )
-    return myextension.dict()
+    return merchantpill.dict()
 
 
 ## update a record
 
 
-@myextension_ext.put("/api/v1/myex/{myextension_id}")
-async def api_myextension_update(
+@merchantpill_ext.put("/api/v1/myex/{merchantpill_id}")
+async def api_merchantpill_update(
     req: Request,
     data: CreateMyExtensionData,
-    myextension_id: str,
+    merchantpill_id: str,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
-    if not myextension_id:
+    if not merchantpill_id:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
         )
-    myextension = await get_myextension(myextension_id, req)
-    assert myextension, "MyExtension couldn't be retrieved"
+    merchantpill = await get_merchantpill(merchantpill_id, req)
+    assert merchantpill, "MyExtension couldn't be retrieved"
 
-    if wallet.wallet.id != myextension.wallet:
+    if wallet.wallet.id != merchantpill.wallet:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not your MyExtension."
         )
-    myextension = await update_myextension(
-        myextension_id=myextension_id, **data.dict(), req=req
+    merchantpill = await update_merchantpill(
+        merchantpill_id=merchantpill_id, **data.dict(), req=req
     )
-    return myextension.dict()
+    return merchantpill.dict()
 
 
 ## Create a new record
 
 
-@myextension_ext.post("/api/v1/myex", status_code=HTTPStatus.CREATED)
-async def api_myextension_create(
+@merchantpill_ext.post("/api/v1/myex", status_code=HTTPStatus.CREATED)
+async def api_merchantpill_create(
     req: Request,
     data: CreateMyExtensionData,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    myextension = await create_myextension(
+    merchantpill = await create_merchantpill(
         wallet_id=wallet.wallet.id, data=data, req=req
     )
-    return myextension.dict()
+    return merchantpill.dict()
 
 
 ## Delete a record
 
 
-@myextension_ext.delete("/api/v1/myex/{myextension_id}")
-async def api_myextension_delete(
-    myextension_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+@merchantpill_ext.delete("/api/v1/myex/{merchantpill_id}")
+async def api_merchantpill_delete(
+    merchantpill_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
-    myextension = await get_myextension(myextension_id)
+    merchantpill = await get_merchantpill(merchantpill_id)
 
-    if not myextension:
+    if not merchantpill:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
         )
 
-    if myextension.wallet != wallet.wallet.id:
+    if merchantpill.wallet != wallet.wallet.id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not your MyExtension."
         )
 
-    await delete_myextension(myextension_id)
+    await delete_merchantpill(merchantpill_id)
     return "", HTTPStatus.NO_CONTENT
 
 
@@ -137,15 +137,15 @@ async def api_myextension_delete(
 ## This endpoint creates a payment
 
 
-@myextension_ext.post(
-    "/api/v1/myex/payment/{myextension_id}", status_code=HTTPStatus.CREATED
+@merchantpill_ext.post(
+    "/api/v1/myex/payment/{merchantpill_id}", status_code=HTTPStatus.CREATED
 )
 async def api_tpos_create_invoice(
-    myextension_id: str, amount: int = Query(..., ge=1), memo: str = ""
+    merchantpill_id: str, amount: int = Query(..., ge=1), memo: str = ""
 ) -> dict:
-    myextension = await get_myextension(myextension_id)
+    merchantpill = await get_merchantpill(merchantpill_id)
 
-    if not myextension:
+    if not merchantpill:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
         )
@@ -154,11 +154,11 @@ async def api_tpos_create_invoice(
 
     try:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=myextension.wallet,
+            wallet_id=merchantpill.wallet,
             amount=amount,
-            memo=f"{memo} to {myextension.name}" if memo else f"{myextension.name}",
+            memo=f"{memo} to {merchantpill.name}" if memo else f"{merchantpill.name}",
             extra={
-                "tag": "myextension",
+                "tag": "merchantpill",
                 "amount": amount,
             },
         )
