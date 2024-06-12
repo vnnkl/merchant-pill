@@ -12,7 +12,7 @@ logger.debug("This logged message is from merchantpill/__init__.py, you can debu
 db = Database("ext_merchantpill")
 
 merchantpill_ext: APIRouter = APIRouter(
-    prefix="/merchantpill", tags=["MyExtension"]
+    prefix="/merchantpill", tags=["MerchantPill"]
 )
 
 merchantpill_static_files = [

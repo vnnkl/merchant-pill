@@ -27,7 +27,7 @@ from .crud import (
     get_merchantpill,
     get_merchantpills,
 )
-from .models import CreateMyExtensionData
+from .models import CreateMerchantPillData
 
 
 #######################################
@@ -62,7 +62,7 @@ async def api_merchantpill(
     merchantpill = await get_merchantpill(merchantpill_id, req)
     if not merchantpill:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
         )
     return merchantpill.dict()
 
@@ -73,20 +73,20 @@ async def api_merchantpill(
 @merchantpill_ext.put("/api/v1/myex/{merchantpill_id}")
 async def api_merchantpill_update(
     req: Request,
-    data: CreateMyExtensionData,
+    data: CreateMerchantPillData,
     merchantpill_id: str,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     if not merchantpill_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
         )
     merchantpill = await get_merchantpill(merchantpill_id, req)
-    assert merchantpill, "MyExtension couldn't be retrieved"
+    assert merchantpill, "MerchantPill couldn't be retrieved"
 
     if wallet.wallet.id != merchantpill.wallet:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not your MyExtension."
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your MerchantPill."
         )
     merchantpill = await update_merchantpill(
         merchantpill_id=merchantpill_id, **data.dict(), req=req
@@ -100,7 +100,7 @@ async def api_merchantpill_update(
 @merchantpill_ext.post("/api/v1/myex", status_code=HTTPStatus.CREATED)
 async def api_merchantpill_create(
     req: Request,
-    data: CreateMyExtensionData,
+    data: CreateMerchantPillData,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     merchantpill = await create_merchantpill(
@@ -120,12 +120,12 @@ async def api_merchantpill_delete(
 
     if not merchantpill:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
         )
 
     if merchantpill.wallet != wallet.wallet.id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not your MyExtension."
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your MerchantPill."
         )
 
     await delete_merchantpill(merchantpill_id)
@@ -147,7 +147,7 @@ async def api_tpos_create_invoice(
 
     if not merchantpill:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
         )
 
     # we create a payment and add some tags, so tasks.py can grab the payment once its paid

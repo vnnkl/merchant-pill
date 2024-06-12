@@ -10,7 +10,7 @@ from lnbits.core.services import create_invoice, pay_invoice
 from loguru import logger
 from typing import Optional
 from .crud import update_merchantpill
-from .models import MyExtension
+from .models import MerchantPill
 import shortuuid
 
 #################################################
@@ -66,7 +66,7 @@ async def api_lnurl_pay_cb(
         memo=merchantpill.name,
         unhashed_description=f'[["text/plain", "{merchantpill.name}"]]'.encode(),
         extra={
-            "tag": "MyExtension",
+            "tag": "MerchantPill",
             "merchantpillId": merchantpill_id,
             "extra": request.query_params.get("amount"),
         },
@@ -147,7 +147,7 @@ async def api_lnurl_withdraw_cb(
         payment_request=pr,
         max_sat=int(merchantpill.lnurlwithdrawamount * 1000),
         extra={
-            "tag": "MyExtension",
+            "tag": "MerchantPill",
             "merchantpillId": merchantpill_id,
             "lnurlwithdraw": True,
         },

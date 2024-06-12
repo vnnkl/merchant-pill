@@ -1,6 +1,6 @@
 `The README.md typically serves as a guide for using the extension.`
 
-# MyExtension - An [LNbits](https://github.com/lnbits/lnbits) Extension
+# MerchantPill - An [LNbits](https://github.com/lnbits/lnbits) Extension
 
 ## A Starter Template for Your Own Extension
 

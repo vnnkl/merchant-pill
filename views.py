@@ -38,7 +38,7 @@ async def merchantpill(request: Request, merchantpill_id):
     merchantpill = await get_merchantpill(merchantpill_id, request)
     if not merchantpill:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
         )
     return merchantpill_renderer().TemplateResponse(
         "merchantpill/merchantpill.html",
@@ -59,7 +59,7 @@ async def manifest(merchantpill_id: str):
     merchantpill = await get_merchantpill(merchantpill_id)
     if not merchantpill:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MyExtension does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
         )
 
     return {

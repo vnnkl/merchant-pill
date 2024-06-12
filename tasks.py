@@ -29,7 +29,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra.get("tag") != "MyExtension":
+    if payment.extra.get("tag") != "MerchantPill":
         return
 
     merchantpill_id = payment.extra.get("merchantpillId")

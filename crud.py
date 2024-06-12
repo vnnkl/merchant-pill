@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.lnurl import encode as lnurl_encode
 from . import db
-from .models import CreateMyExtensionData, MyExtension
+from .models import CreateMerchantPillData, MerchantPill
 from loguru import logger
 from fastapi import Request
 from lnurl import encode as lnurl_encode
@@ -11,8 +11,8 @@ import shortuuid
 
 
 async def create_merchantpill(
-    wallet_id: str, data: CreateMyExtensionData, req: Request
-) -> MyExtension:
+    wallet_id: str, data: CreateMerchantPillData, req: Request
+) -> MerchantPill:
     merchantpill_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -34,13 +34,13 @@ async def create_merchantpill(
 
 async def get_merchantpill(
     merchantpill_id: str, req: Optional[Request] = None
-) -> Optional[MyExtension]:
+) -> Optional[MerchantPill]:
     row = await db.fetchone(
         "SELECT * FROM merchantpill.maintable WHERE id = ?", (merchantpill_id,)
     )
     if not row:
         return None
-    rowAmended = MyExtension(**row)
+    rowAmended = MerchantPill(**row)
     if req:
         rowAmended.lnurlpay = lnurl_encode(
             req.url_for("merchantpill.api_lnurl_pay", merchantpill_id=row.id)._url
@@ -57,7 +57,7 @@ async def get_merchantpill(
 
 async def get_merchantpills(
     wallet_ids: Union[str, List[str]], req: Optional[Request] = None
-) -> List[MyExtension]:
+) -> List[MerchantPill]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
@@ -65,7 +65,7 @@ async def get_merchantpills(
     rows = await db.fetchall(
         f"SELECT * FROM merchantpill.maintable WHERE wallet IN ({q})", (*wallet_ids,)
     )
-    tempRows = [MyExtension(**row) for row in rows]
+    tempRows = [MerchantPill(**row) for row in rows]
     if req:
         for row in tempRows:
             row.lnurlpay = lnurl_encode(
@@ -83,7 +83,7 @@ async def get_merchantpills(
 
 async def update_merchantpill(
     merchantpill_id: str, req: Optional[Request] = None, **kwargs
-) -> MyExtension:
+) -> MerchantPill:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE merchantpill.maintable SET {q} WHERE id = ?",
