@@ -9,7 +9,7 @@
     <q-card>
       <q-card-section>
         <q-btn unelevated color="primary" @click="formDialog.show = true"
-          >New MerchantPill</q-btn
+          >New User</q-btn
         >
       </q-card-section>
     </q-card>
@@ -18,7 +18,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">MerchantPill</h5>
+            <h5 class="text-subtitle1 q-my-none">Users</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
@@ -27,18 +27,18 @@
         <q-table
           dense
           flat
-          :data="myex"
+          :data="users"
           row-key="id"
-          :columns="myexTable.columns"
-          :pagination.sync="myexTable.pagination"
+          :columns="usersTable.columns"
+          :pagination.sync="usersTable.pagination"
         >
-          <merchantpill v-slot:header="props">
+          <template v-slot:header="props">
             <q-tr :props="props">
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 ${ col.label }
               </q-th>
             </q-tr>
-          </merchantpill>
+          </template>
 
           <template v-slot:body="props">
             <q-tr :props="props">
@@ -65,7 +65,7 @@
                   icon="launch"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="props.row.merchantpill"
+                  :href="props.row.lnurlpay"
                   target="_blank"
                   ><q-tooltip>Open public page</q-tooltip></q-btn
                 ></q-td
@@ -76,11 +76,11 @@
                   flat
                   dense
                   size="xs"
-                  @click="updateMerchantPillForm(props.row.id)"
+                  @click="updateUserForm(props.row.id)"
                   icon="edit"
                   color="light-blue"
                 >
-                  <q-tooltip> Edit copilot </q-tooltip>
+                  <q-tooltip> Edit user </q-tooltip>
                 </q-btn>
               </q-td>
 
@@ -89,11 +89,11 @@
                   flat
                   dense
                   size="xs"
-                  @click="deleteMerchantPill(props.row.id)"
+                  @click="deleteUser(props.row.id)"
                   icon="cancel"
                   color="pink"
                 >
-                  <q-tooltip> Delete copilot </q-tooltip>
+                  <q-tooltip> Delete user </q-tooltip>
                 </q-btn>
               </q-td>
             </q-tr>
@@ -107,19 +107,19 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          {{SITE_TITLE}} MerchantPill extension
+          {{SITE_TITLE}} User Management
         </h6>
         <p>
-          Simple extension you can use as a base for your own extension. <br />
-          Includes very simple LNURL-pay and LNURL-withdraw example.
+          Manage users and their transactions. <br />
+          Includes LNURL-pay and LNURL-withdraw functionalities.
         </p>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
         <q-list>
-          {% include "merchantpill/_api_docs.html" %}
+          {% include "user/_api_docs.html" %}
           <q-separator></q-separator>
-          {% include "merchantpill/_merchantpill.html" %}
+          {% include "user/_user.html" %}
         </q-list>
       </q-card-section>
     </q-card>
@@ -131,13 +131,13 @@
 
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="sendMerchantPillData" class="q-gutter-md">
+      <q-form @submit="sendUserData" class="q-gutter-md">
         <q-input
           filled
           dense
           v-model.trim="formDialog.data.name"
           label="Name"
-          placeholder="Name for your record"
+          placeholder="Name for the user"
         ></q-input>
         <q-select
           filled
@@ -167,7 +167,7 @@
             unelevated
             color="primary"
             type="submit"
-            >Update MerchantPill</q-btn
+            >Update User</q-btn
           >
           <q-btn
             v-else
@@ -175,7 +175,7 @@
             color="primary"
             :disable="formDialog.data.name == null || formDialog.data.wallet == null || formDialog.data.lnurlwithdrawamount == null || formDialog.data.lnurlpayamount == null"
             type="submit"
-            >Create MerchantPill</q-btn
+            >Create User</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
@@ -242,12 +242,12 @@
   ///////////////////////////////////////////////////
   //////////an object we can update with data////////
   ///////////////////////////////////////////////////
-  const mapMerchantPill = (obj) => {
+  const mapUser = (obj) => {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       "YYYY-MM-DD HH:mm"
     );
-    obj.merchantpill = ["/merchantpill/", obj.id].join("");
+    obj.lnurlpay = ["/user/", obj.id].join("");
     return obj;
   };
   new Vue({
@@ -258,8 +258,8 @@
       return {
         invoiceAmount: 10,
         qrValue: "lnurlpay",
-        myex: [],
-        myexTable: {
+        users: [],
+        usersTable: {
           columns: [
             { name: "id", align: "left", label: "ID", field: "id" },
             { name: "name", align: "left", label: "Name", field: "name" },
@@ -272,7 +272,7 @@
             {
               name: "total",
               align: "left",
-              label: "Total sent/received",
+              label: "Total",
               field: "total",
             },
           ],
@@ -301,22 +301,22 @@
         this.formDialog.show = false;
         this.formDialog.data = {};
       },
-      getMerchantPills: function () {
+      getUsers: function () {
         var self = this;
 
         LNbits.api
           .request(
             "GET",
-            "/merchantpill/api/v1/myex?all_wallets=true",
+            "/user/api/v1/users?all_wallets=true",
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.myex = response.data.map(function (obj) {
-              return mapMerchantPill(obj);
+            self.users = response.data.map(function (obj) {
+              return mapUser(obj);
             });
           });
       },
-      sendMerchantPillData() {
+      sendUserData() {
         const data = {
           name: this.formDialog.data.name,
           lnurlwithdrawamount: this.formDialog.data.lnurlwithdrawamount,
@@ -329,70 +329,64 @@
           data.id = this.formDialog.data.id;
           data.wallet = wallet.id;
           data.total = this.formDialog.data.total;
-          this.updateMerchantPill(wallet, data);
+          this.updateUser(wallet, data);
         } else {
-          this.createMerchantPill(wallet, data);
+          this.createUser(wallet, data);
         }
       },
-      updateMerchantPillForm(tempId) {
-        const merchantpill = _.findWhere(this.myex, { id: tempId });
+      updateUserForm(tempId) {
+        const user = _.findWhere(this.users, { id: tempId });
         this.formDialog.data = {
-          ...merchantpill,
+          ...user,
         };
-        if (this.formDialog.data.tip_wallet != "") {
-          this.formDialog.advanced.tips = true;
-        }
-        if (this.formDialog.data.withdrawlimit >= 1) {
-          this.formDialog.advanced.otc = true;
-        }
         this.formDialog.show = true;
       },
-      createMerchantPill(wallet, data) {
+      createUser(wallet, data) {
         LNbits.api
-          .request("POST", "/merchantpill/api/v1/myex", wallet.adminkey, data)
+          .request("POST", "/user/api/v1/users", wallet.adminkey, data)
           .then((response) => {
-            this.myex.push(mapMerchantPill(response.data));
+            this.users.push(mapUser(response.data));
             this.closeFormDialog();
           })
           .catch((error) => {
             LNbits.utils.notifyApiError(error);
           });
       },
-      updateMerchantPill(wallet, data) {
+      updateUser(wallet, data) {
         LNbits.api
           .request(
             "PUT",
-            `/merchantpill/api/v1/myex/${data.id}`,
+            `/user/api/v1/users/${data.id}`,
             wallet.adminkey,
             data
           )
           .then((response) => {
-            this.myex = _.reject(this.myex, (obj) => {
+            this.users = _.reject(this.users, (obj) => {
               return obj.id == data.id;
             });
-            this.myex.push(mapMerchantPill(response.data));
+            this.users.push(mapUser(response.data));
             this.closeFormDialog();
           })
           .catch((error) => {
             LNbits.utils.notifyApiError(error);
           });
       },
-      deleteMerchantPill: function (tempId) {
+      deleteUser: function (tempId) {
         var self = this;
-        var merchantpill = _.findWhere(this.myex, { id: tempId });
+        var user = _.findWhere(this.users, { id: tempId });
 
         LNbits.utils
-          .confirmDialog("Are you sure you want to delete this MerchantPill?")
+          .confirmDialog("Are you sure you want to delete this User?")
           .onOk(function () {
             LNbits.api
               .request(
                 "DELETE",
-                "/merchantpill/api/v1/myex/" + tempId,
-                _.findWhere(self.g.user.wallets, { id: merchantpill.wallet })
+                "/user/api/v1/users/" + tempId,
+                _.findWhere(self.g.user.wallets, { id: user.wallet })
                   .adminkey
               )
               .then(function (response) {
-                self.myex = _.reject(self.myex, function (obj) {
+                self.users = _.reject(self.users, function (obj) {
                   return obj.id == tempId;
                 });
               })
@@ -402,39 +396,16 @@
           });
       },
       exportCSV: function () {
-        LNbits.utils.exportCSV(this.myexTable.columns, this.myex);
-      },
-      itemsArray(tempId) {
-        const merchantpill = _.findWhere(this.myex, { id: tempId });
-        return [...merchantpill.itemsMap.values()];
-      },
-      openformDialog(id) {
-        const [tempId, itemId] = id.split(":");
-        const merchantpill = _.findWhere(this.myex, { id: tempId });
-        if (itemId) {
-          const item = merchantpill.itemsMap.get(id);
-          this.formDialog.data = {
-            ...item,
-            merchantpill: tempId,
-          };
-        } else {
-          this.formDialog.data.merchantpill = tempId;
-        }
-        this.formDialog.data.currency = merchantpill.currency;
-        this.formDialog.show = true;
-      },
-      closeformDialog() {
-        this.formDialog.show = false;
-        this.formDialog.data = {};
+        LNbits.utils.exportCSV(this.usersTable.columns, this.users);
       },
       openUrlDialog(id) {
-        this.urlDialog.data = _.findWhere(this.myex, { id });
+        this.urlDialog.data = _.findWhere(this.users, { id });
         this.qrValue = this.urlDialog.data.lnurlpay;
         console.log(this.urlDialog.data.id);
         this.connectWebocket(this.urlDialog.data.id);
         this.urlDialog.show = true;
       },
-      createInvoice(walletId, merchantpillId) {
+      createInvoice(walletId, userId) {
         ///////////////////////////////////////////////////
         ///Simple call to the api to create an invoice/////
         ///////////////////////////////////////////////////
@@ -445,10 +416,10 @@
         const dataToSend = {
           out: false,
           amount: this.invoiceAmount,
-          memo: "Invoice created by MerchantPill",
+          memo: "Invoice created by User",
           extra: {
-            tag: "MerchantPill",
-            merchantpillId: merchantpillId,
+            tag: "User",
+            userId: userId,
           },
         };
         LNbits.api
@@ -523,7 +494,7 @@
     ///////////////////////////////////////////////////
     created: function () {
       if (this.g.user.wallets.length) {
-        this.getMerchantPills();
+        this.getUsers();
       }
     },
   });
