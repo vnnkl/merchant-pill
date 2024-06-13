@@ -21,13 +21,23 @@ from lnbits.decorators import (
 
 from . import merchantpill_ext
 from .crud import (
-    create_merchantpill,
-    update_merchantpill,
-    delete_merchantpill,
-    get_merchantpill,
-    get_merchantpills,
+    create_user,
+    update_user,
+    delete_user,
+    get_user,
+    get_users,
+    create_debt,
+    update_debt,
+    delete_debt,
+    get_debt,
+    get_debts,
+    create_transaction,
+    update_transaction,
+    delete_transaction,
+    get_transaction,
+    get_transactions,
 )
-from .models import CreateMerchantPillData
+from .models import CreateUser, CreateDebt, CreateTransaction
 
 
 #######################################
@@ -37,8 +47,8 @@ from .models import CreateMerchantPillData
 ## Get all the records belonging to the user
 
 
-@merchantpill_ext.get("/api/v1/myex", status_code=HTTPStatus.OK)
-async def api_merchantpills(
+@merchantpill_ext.get("/api/v1/user", status_code=HTTPStatus.OK)
+async def api_users(
     req: Request,
     all_wallets: bool = Query(False),
     wallet: WalletTypeInfo = Depends(get_key_type),
@@ -48,87 +58,87 @@ async def api_merchantpills(
         user = await get_user(wallet.wallet.user)
         wallet_ids = user.wallet_ids if user else []
     return [
-        merchantpill.dict() for merchantpill in await get_merchantpills(wallet_ids, req)
+        user.dict() for user in await get_users(wallet_ids, req)
     ]
 
 
 ## Get a single record
 
 
-@merchantpill_ext.get("/api/v1/myex/{merchantpill_id}", status_code=HTTPStatus.OK)
-async def api_merchantpill(
-    req: Request, merchantpill_id: str, WalletTypeInfo=Depends(get_key_type)
+@merchantpill_ext.get("/api/v1/user/{user_id}", status_code=HTTPStatus.OK)
+async def api_user(
+    req: Request, user_id: str, WalletTypeInfo=Depends(get_key_type)
 ):
-    merchantpill = await get_merchantpill(merchantpill_id, req)
-    if not merchantpill:
+    user = await get_user(user_id, req)
+    if not user:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
-    return merchantpill.dict()
+    return user.dict()
 
 
 ## update a record
 
 
-@merchantpill_ext.put("/api/v1/myex/{merchantpill_id}")
-async def api_merchantpill_update(
+@merchantpill_ext.put("/api/v1/user/{user_id}")
+async def api_user_update(
     req: Request,
-    data: CreateMerchantPillData,
-    merchantpill_id: str,
+    data: CreateUser,
+    user_id: str,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
-    if not merchantpill_id:
+    if not user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
-    merchantpill = await get_merchantpill(merchantpill_id, req)
-    assert merchantpill, "MerchantPill couldn't be retrieved"
+    user = await get_user(user_id, req)
+    assert user, "User couldn't be retrieved"
 
-    if wallet.wallet.id != merchantpill.wallet:
+    if wallet.wallet.id != user.wallet:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not your MerchantPill."
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your User."
         )
-    merchantpill = await update_merchantpill(
-        merchantpill_id=merchantpill_id, **data.dict(), req=req
+    user = await update_user(
+        user_id=user_id, **data.dict(), req=req
     )
-    return merchantpill.dict()
+    return user.dict()
 
 
 ## Create a new record
 
 
-@merchantpill_ext.post("/api/v1/myex", status_code=HTTPStatus.CREATED)
-async def api_merchantpill_create(
+@merchantpill_ext.post("/api/v1/user", status_code=HTTPStatus.CREATED)
+async def api_user_create(
     req: Request,
-    data: CreateMerchantPillData,
+    data: CreateUser,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    merchantpill = await create_merchantpill(
+    user = await create_user(
         wallet_id=wallet.wallet.id, data=data, req=req
     )
-    return merchantpill.dict()
+    return user.dict()
 
 
 ## Delete a record
 
 
-@merchantpill_ext.delete("/api/v1/myex/{merchantpill_id}")
-async def api_merchantpill_delete(
-    merchantpill_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+@merchantpill_ext.delete("/api/v1/user/{user_id}")
+async def api_user_delete(
+    user_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
-    merchantpill = await get_merchantpill(merchantpill_id)
+    user = await get_user(user_id)
 
-    if not merchantpill:
+    if not user:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
 
-    if merchantpill.wallet != wallet.wallet.id:
+    if user.wallet != wallet.wallet.id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not your MerchantPill."
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your User."
         )
 
-    await delete_merchantpill(merchantpill_id)
+    await delete_user(user_id)
     return "", HTTPStatus.NO_CONTENT
 
 
@@ -138,27 +148,27 @@ async def api_merchantpill_delete(
 
 
 @merchantpill_ext.post(
-    "/api/v1/myex/payment/{merchantpill_id}", status_code=HTTPStatus.CREATED
+    "/api/v1/user/payment/{user_id}", status_code=HTTPStatus.CREATED
 )
 async def api_tpos_create_invoice(
-    merchantpill_id: str, amount: int = Query(..., ge=1), memo: str = ""
+    user_id: str, amount: int = Query(..., ge=1), memo: str = ""
 ) -> dict:
-    merchantpill = await get_merchantpill(merchantpill_id)
+    user = await get_user(user_id)
 
-    if not merchantpill:
+    if not user:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="MerchantPill does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
 
     # we create a payment and add some tags, so tasks.py can grab the payment once its paid
 
     try:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=merchantpill.wallet,
+            wallet_id=user.wallet,
             amount=amount,
-            memo=f"{memo} to {merchantpill.name}" if memo else f"{merchantpill.name}",
+            memo=f"{memo} to {user.name}" if memo else f"{user.name}",
             extra={
-                "tag": "merchantpill",
+                "tag": "user",
                 "amount": amount,
             },
         )

@@ -7,7 +7,7 @@ from lnbits.core.services import create_invoice, websocket_updater
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_merchantpill, update_merchantpill
+from .crud import get_user, update_user, get_debt, update_debt, create_transaction
 
 
 #######################################
@@ -25,33 +25,48 @@ async def wait_for_paid_invoices():
         await on_invoice_paid(payment)
 
 
-# Do somethhing when an invoice related top this extension is paid
+# Do something when an invoice related to this extension is paid
 
 
 async def on_invoice_paid(payment: Payment) -> None:
     if payment.extra.get("tag") != "MerchantPill":
         return
 
-    merchantpill_id = payment.extra.get("merchantpillId")
-    merchantpill = await get_merchantpill(merchantpill_id)
+    user_id = payment.extra.get("userId")
+    user = await get_user(user_id)
 
     # update something in the db
     if payment.extra.get("lnurlwithdraw"):
-        total = merchantpill.total - payment.amount
+        total = user.total - payment.amount
     else:
-        total = merchantpill.total + payment.amount
-    data_to_update = {"total": total}
+        total = user.total + payment.amount
+    data_to_update = {"total": total, "satoshipaid": payment.amount}
 
-    await update_merchantpill(merchantpill_id=merchantpill_id, **data_to_update)
+    await update_user(user_id=user_id, **data_to_update)
 
-    # here we could send some data to a websocket on wss://<your-lnbits>/api/v1/ws/<merchantpill_id>
+    # update debt if exists
+    if user.debt_id:
+        debt = await get_debt(user.debt_id)
+        debt_data_to_update = {"debtPaid": debt.debtPaid + payment.amount}
+        await update_debt(debt_id=user.debt_id, **debt_data_to_update)
+
+    # create a transaction
+    transaction_data = {
+        "from_user_id": user_id,
+        "to_user_id": user.invited_by,
+        "amount": payment.amount,
+        "currency": "euro",  # assuming euro as currency
+    }
+    await create_transaction(**transaction_data)
+
+    # here we could send some data to a websocket on wss://<your-lnbits>/api/v1/ws/<user_id>
     # and then listen to it on the frontend, which we do with index.html connectWebocket()
 
     some_payment_data = {
-        "name": merchantpill.name,
+        "name": user.name,
         "amount": payment.amount,
         "fee": payment.fee,
         "checking_id": payment.checking_id,
     }
 
-    await websocket_updater(merchantpill_id, str(some_payment_data))
+    await websocket_updater(user_id, str(some_payment_data))
